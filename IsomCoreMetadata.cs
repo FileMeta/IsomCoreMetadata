@@ -51,7 +51,7 @@ using System.Collections.Generic;
 namespace FileMeta
 {
     /// <summary>
-    /// Class for retrieving and setting 'core' metadata on ISOM format files including MP4, MOV, and M4A formats among others.
+    /// Class for retrieving and setting 'core' metadata on ISO Base Media File Format (ISOM) files including MP4, MOV, and M4A formats among others.
     /// </summary>
     /// <remarks>
     /// "Core Metadata" in this case referrs to metadata that are inherent in the data structures. These include

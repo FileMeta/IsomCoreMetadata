@@ -3,7 +3,7 @@
 name: IsomCoreMetadata.cs
 description: Read and write basic metadata on ISO Base Media File Format including .MP4 .MOV and .M4A
 url: https://github.com/FileMeta/WinShellPropertyStore/raw/master/WinShellPropertyStore.cs
-version: 1.0
+version: 1.1
 keywords: CodeBit
 dateModified: 2018-05-02
 license: http://unlicense.org
@@ -69,6 +69,63 @@ namespace FileMeta
         bool m_valueChanged;
 
         /// <summary>
+        /// Tries to open a file as an ISO Base Media file.
+        /// </summary>
+        /// <param name="filename">Name of file to attempt to open.</param>
+        /// <param name="writeAccess">True if file is to be opened for reading. Defaults to false.</param>
+        /// <returns>An IsomCoreMetadata object if successful. Otherwise null.</returns>
+        public static IsomCoreMetadata TryOpen(string filename, bool writeAccess = false)
+        {
+            Stream stream = null;
+            try
+            {
+                stream = new FileStream(filename, FileMode.Open,
+                    writeAccess ? FileAccess.ReadWrite : FileAccess.Read,
+                    writeAccess ? FileShare.None : FileShare.Read);
+                var isom = TryOpen(stream, writeAccess, false);
+                if (isom != null)
+                {
+                    stream = null;
+                    return isom;
+                }
+            }
+            catch
+            {
+                // Do nothing except clean up and return null
+            }
+            finally
+            {
+                if (stream != null)
+                {
+                    stream.Dispose();
+                    stream = null;
+                }
+            }
+
+            return null;
+        }
+
+        public static IsomCoreMetadata TryOpen(Stream stream, bool writeAccess = false, bool leaveOpen = false)
+        {
+            // Attempt to read the header
+            stream.Position = 0;
+            var size = ReadUInt32BE(stream);
+            var boxType = ReadASCII(stream, 4);
+
+            if (size <= stream.Length && boxType.Equals("ftyp", StringComparison.Ordinal))
+            {
+                return new IsomCoreMetadata(stream, writeAccess, leaveOpen);
+            }
+
+            if (!leaveOpen)
+            {
+                stream.Dispose();
+            }
+
+            return null;
+        }
+
+        /// <summary>
         /// Create the ISOM object from a filename.
         /// </summary>
         /// <remarks>
@@ -76,6 +133,7 @@ namespace FileMeta
         /// </remarks>
         /// <exception cref="InvalidOperationException">Thrown if not an ISOM file format.</exception>
         /// <param name="filename">Name of an ISOM file.</param>
+        /// <param name="writeAccess">True if file is to be opened for reading. Defaults to false.</param>
         public IsomCoreMetadata(string filename, bool writeAccess = false)
         {
             Stream stream = null;
